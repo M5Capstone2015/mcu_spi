@@ -1,6 +1,6 @@
 /**************************************************************************//**
  * @file
- * @brief Simple LED Blink Demo for EFM32TG_STK3300
+  * @brief Simple LED Blink Demo for EFM32TG_STK3300
  * @author Energy Micro AS
  * @version 3.20.2
  ******************************************************************************
@@ -16,6 +16,8 @@
  ******************************************************************************/
 
 #include <stdint.h>
+
+#include <stdlib.h>
 #include <stdbool.h>
 #include "em_device.h"
 #include "em_chip.h"
@@ -28,6 +30,9 @@
 #include "spi.h"
 #include "usart.h"
 
+#define LED1_INDEX  13
+#define LED2_INDEX  5
+
 volatile uint32_t msTicks; /* counts 1ms timeTicks */
 
 void Delay(uint32_t dlyTicks);
@@ -38,13 +43,21 @@ USART_TypeDef *uart = USART1;
 char transmitBuffer[] = "TEST";
 
 //#define            BUFFERSIZE    (sizeof(transmitBuffer) / sizeof(char))
-#define BUFFERSIZE 	256
+#define BUFFERSIZE 	17
 char receiveBuffer[BUFFERSIZE];
 char receiveBuffer2[BUFFERSIZE];
+char bit_ready2[BUFFERSIZE];
+
+int spo2;
+
+int bitz[3] = {0};
+char* bit_readyptr;
 
 volatile int got_afe_ready = 0;
 volatile int entered_gpio_callback = 0;
-/**************************************************************************//**
+volatile int led1_val = 0;
+volatile int led2_val = 0;
+/*************************v*************************************************//**
  * @brief SysTick_Handler
  * Interrupt Service Routine for system tick counter
  *****************************************************************************/
@@ -72,30 +85,23 @@ void Delay(uint32_t dlyTicks)
 void gpioCallback(uint8_t pin)
 {
 
-  if ((pin == 4) && (got_afe_ready == 0))
+  if (pin == 4)
   {
-		entered_gpio_callback++;
-	  /* read registers */
-
-	  USART1_send4Byte(0, 0, 0, 0x01);
-	  USART1_send4Byte(0x2A, 0, 0, 0);
-
-//	  USART1_send4Byte(0, 0, 0, 0x01);
-//	  USART1_send4Byte(0x2B, 0, 0, 0);
-//	  USART1_send4Byte(0, 0, 0, 0x01);
-//	  USART1_send4Byte(0x2C, 0, 0, 0);
-//	  USART1_send4Byte(0, 0, 0, 0x01);
-//	  USART1_send4Byte(0x2D, 0, 0, 0);
-//	  USART1_send4Byte(0, 0, 0, 0x01);
-//	  USART1_send4Byte(0x2E, 0, 0, 0);
-//	  USART1_send4Byte(0, 0, 0, 0x01);
-//	  USART1_send4Byte(0x2F, 0, 0, 0);
-	  got_afe_ready++;
+	  entered_gpio_callback = 1;
   }
 
 
 }
 
+void read_data() {
+	/* read registers */
+
+      USART1_send4Byte(0, 0, 0, 0x01);
+	  USART1_send4Byte(0x2E, 0, 0, 0);
+	  USART1_send4Byte(0, 0, 0, 0x01);
+	  USART1_send4Byte(0x2F, 0, 0, 0);
+
+}
 /**************************************************************************//**
  * @brief  Main function
  *****************************************************************************/
@@ -236,7 +242,7 @@ int main(void)
 //	  USART1_send4Byte(0x30, 0x00, 0x00, 0x00); 	// DIAG					=			D[23:13]=0 PD_ALM[12] LED_ALM[11] LED1OPEN[10] LED2OPEN[9] LEDSC[8] OUTPSHGND[7] OUTNSHGND[6] PDOC[5] PDSC[4] INNSCGND[3] INPSCGND[2] INNSCLED[1] INPSCLED[0]
 	  Delay(100); // Delay after register update
 	  // Configure interrupts for TX and RX
-	    SPI1_setupSlaveInt(receiveBuffer, 256, transmitBuffer, BUFFERSIZE);
+	    SPI1_setupSlaveInt(receiveBuffer, 256, transmitBuffer, BUFFERSIZE, bit_ready2);
 
 	  /* Register callbacks before setting up and enabling pin interrupt. */
 	  // remove line comment below to enable interrupt driven adc register requests
@@ -253,14 +259,45 @@ int main(void)
 	  NVIC_SetPriority(USART1_RX_IRQn, 0);
 	  NVIC_SetPriority(GPIO_ODD_IRQn, 1);
 	  NVIC_SetPriority(GPIO_EVEN_IRQn, 1);
+
+  int tmp;
+  int count = 0;
+
   while (1)
   {
-	  /* check diagnostic register */
-//	  USART1_send4Byte(0x00, 0x00, 0x00, 0x04);
-//	  Delay(5000);
 
+	 if( (entered_gpio_callback = 1) & (count == 0)) {
+		 read_data();
+		 while( bit_ready2[5] == 0);
+//		 bitz[0] = atoi(&receiveBuffer[5]);
+		 bitz[0] = receiveBuffer[5];
+		 bit_ready2[5] = 0;
+		 while( bit_ready2[6] == 0);
+		 bitz[1] = receiveBuffer[6];
+		 bit_ready2[6] = 0;
+		 while( bit_ready2[7] == 0);
+		 bitz[2] = receiveBuffer[7];
+		 bit_ready2[7] = 0;
 
-//	  Delay(5000);
-//	  USART1_send4Byte(0x01, 0x00, 0x00, 0x00);
+		 tmp = receiveBuffer[LED2_INDEX];
+		 led2_val = (tmp << 15);
+		 tmp = receiveBuffer[LED2_INDEX+1];
+		 led2_val |= (tmp << 7);
+		 tmp = receiveBuffer[LED2_INDEX];
+		 led2_val |= tmp;
+
+		 tmp = receiveBuffer[LED1_INDEX];
+		 led1_val = (tmp << 15);
+		 tmp = receiveBuffer[LED1_INDEX+1];
+		 led1_val |= (tmp << 7);
+		 tmp = receiveBuffer[LED1_INDEX+2];
+		 led1_val |= tmp;
+
+		 spo2 = 1000*led2_val/led1_val;
+
+		 entered_gpio_callback = 0;
+		 count++;
+	 }
   }
+
 }

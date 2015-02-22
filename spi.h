@@ -40,13 +40,16 @@
 #define SPI_PERCLK_FREQUENCY    HFRCO_FREQUENCY
 #define SPI_BAUDRATE            1000000
 
+
 #include <stdbool.h>
 #include "em_device.h"
 
 
+
+
 void SPI_setup(uint8_t spiNumber, uint8_t location, bool master);
 void SPI1_setupRXInt(char* receiveBuffer, int bytesToReceive);
-void SPI1_setupSlaveInt(char* receiveBuffer, int receiveBufferSize, char* transmitBuffer, int transmitBufferSize);
+void SPI1_setupSlaveInt(char* receiveBuffer, int receiveBufferSize, char* transmitBuffer, int transmitBufferSize, char* bit_ready2);
 
 
 #endif

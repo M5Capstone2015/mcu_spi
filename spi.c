@@ -48,6 +48,9 @@ volatile int slaveRxBufferIndex;
 char* masterRxBuffer;
 int masterRxBufferSize;
 volatile int masterRxBufferIndex;
+char* bit_ready_buffer;
+
+int bit_ready[8] = {0,0,0,0,0,0,0,0};
 
 volatile int entered_isr = 0;
 volatile int start_isr = 0;
@@ -268,11 +271,12 @@ void SPI1_setupTXInt(char* transmitBuffer, int transmitBufferSize)
  * @param transmitBuffer points to the data to send
  * @param transmitBufferSize indicates the number of bytes to send
  *****************************************************************************/
-void SPI1_setupSlaveInt(char* receiveBuffer, int receiveBufferSize, char* transmitBuffer, int transmitBufferSize)
+void SPI1_setupSlaveInt(char* receiveBuffer, int receiveBufferSize, char* transmitBuffer, int transmitBufferSize, char* bit_ready2)
 {
 
   SPI1_setupRXInt(receiveBuffer, receiveBufferSize);
-//  SPI1_setupTXInt(transmitBuffer, transmitBufferSize);
+  //  SPI1_setupTXInt(transmitBuffer, transmitBufferSize);
+  bit_ready_buffer = bit_ready2;
 }
 
 
@@ -298,6 +302,7 @@ void USART1_RX_IRQHandler(void)
       /* Store Data */
       slaveRxBuffer[slaveRxBufferIndex] = rxdata;
       slaveRxBufferIndex++;
+      bit_ready_buffer[slaveRxBufferIndex-1] = 1;
     }
   }
 
