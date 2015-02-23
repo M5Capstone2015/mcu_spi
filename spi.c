@@ -50,8 +50,6 @@ int masterRxBufferSize;
 volatile int masterRxBufferIndex;
 char* bit_ready_buffer;
 
-int bit_ready[8] = {0,0,0,0,0,0,0,0};
-
 volatile int entered_isr = 0;
 volatile int start_isr = 0;
 /**************************************************************************//**
