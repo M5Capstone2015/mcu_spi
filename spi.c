@@ -269,12 +269,11 @@ void SPI1_setupTXInt(char* transmitBuffer, int transmitBufferSize)
  * @param transmitBuffer points to the data to send
  * @param transmitBufferSize indicates the number of bytes to send
  *****************************************************************************/
-void SPI1_setupSlaveInt(char* receiveBuffer, int receiveBufferSize, char* transmitBuffer, int transmitBufferSize, char* bit_ready2)
+void SPI1_setupSlaveInt(char* receiveBuffer, int receiveBufferSize,  char* bit_ready)
 {
 
   SPI1_setupRXInt(receiveBuffer, receiveBufferSize);
-  //  SPI1_setupTXInt(transmitBuffer, transmitBufferSize);
-  bit_ready_buffer = bit_ready2;
+  bit_ready_buffer = bit_ready;
 }
 
 
