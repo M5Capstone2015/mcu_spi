@@ -13,8 +13,7 @@ Dependencies:
 
 #define BSP_GPIO_pins
 #define BSP_NO_OF_PINS  1
-//#define BSP_GPIO_pinArray_INIT {{gpioPortD,4}}
-#define BSP_GPIO_pinArray_INIT {{gpioPortB,12}}
+#define BSP_GPIO_pinArray_INIT {{gpioPortA,14}}
 
 
 typedef struct
@@ -80,7 +79,7 @@ int toggle_pin(int pinNo)
 ////
 void delay(uint32_t dlyTicks)
 {
-  uint32_t i;
+  volatile uint32_t i;
   for (i=1 ; i<dlyTicks ; i++);
 }
 /**************************************************************************//**

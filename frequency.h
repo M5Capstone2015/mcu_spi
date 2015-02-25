@@ -12,7 +12,9 @@
 
 #define BYTE_SIZE = 8
 
-int mappedByte = 0;
+uint32_t mappedByte = 0;
+int byte_array[8];
+
 /**************************************************************************//**
  * @brief Toggles io with a set delay time a number of times
  * @param delayTime - delay times in Milliseconds (period will be twice this number), repetitions
@@ -50,8 +52,6 @@ void send_bit(uint32_t bit)
 }
 
 
-
-
 void toBitArray(int a,int* output){
 	if (a >= 255){
 		a = 255;
@@ -82,8 +82,10 @@ void send_byte(uint32_t byte)
 	for(i = 0; i < 8; i++) {
 		temp = mappedByte >> i;
 		temp &= 0x1;
+		byte_array[i] = temp;
 		send_bit(temp);
 	}
 
 }
+
 #endif /* FREQUENCY_H_ */

@@ -1,22 +1,19 @@
 /**************************************************************************//**
  * @file
-  * @brief Simple LED Blink Demo for EFM32TG_STK3300
- * @author Energy Micro AS
- * @version 3.20.2
+ * @brief Simple LED Blink Demo for EFM32TG_STK3300
+ * @version 3.20.5
  ******************************************************************************
  * @section License
  * <b>(C) Copyright 2014 Silicon Labs, http://www.silabs.com</b>
  *******************************************************************************
  *
- * This file is licensed under the Silicon Labs Software License Agreement. See 
- * "http://developer.silabs.com/legal/version/v11/Silicon_Labs_Software_License_Agreement.txt"  
- * for details. Before using this software for any purpose, you must agree to the 
- * terms of that agreement.
+ * This file is licensed under the Silabs License Agreement. See the file
+ * "Silabs_License_Agreement.txt" for details. Before using this software for
+ * any purpose, you must agree to the terms of that agreement.
  *
  ******************************************************************************/
 
 #include <stdint.h>
-
 #include <stdlib.h>
 #include <stdbool.h>
 #include "em_device.h"
@@ -30,17 +27,18 @@
 #include "spi.h"
 #include "usart.h"
 #include "frequency.h"
+#include "iocontrols.h"
 
 #define LED1_INDEX  13
 #define LED2_INDEX  5
 
-volatile uint32_t msTicks; /* counts 1ms timeTicks */
+volatile uint32_t msTicks; // counts 1ms timeTicks
 
 void Delay(uint32_t dlyTicks);
 
 USART_TypeDef *uart = USART1;
 
-/* Buffers */
+// Buffers
 char transmitBuffer[] = "TEST";
 
 //#define            BUFFERSIZE    (sizeof(transmitBuffer) / sizeof(char))
@@ -64,7 +62,7 @@ volatile int led2_val = 0;
  *****************************************************************************/
 void SysTick_Handler(void)
 {
-  msTicks++;       /* increment counter necessary in Delay()*/
+  msTicks++;       // increment counter necessary in Delay()
 }
 
 /**************************************************************************//**
@@ -124,7 +122,7 @@ void init_afe() {
 	USART1_send4Byte(0x27, 0x00, 0x00, 0x00); 	// RESERVED1			=	   0	RESERVED1 Register For Factory Use Only
 	USART1_send4Byte(0x28, 0x00, 0x00, 0x00); 	// RESERVED2			=	   0	RESERVED2 Register For Factory Use Only
 	USART1_send4Byte(0x29, 0x00, 0x00, 0x00); 	// ALARM				=	   		D[23:8]=0 ALMPINCLKEN[7]=0 D[6:0]=0
-	/* read only registers */
+	// read only registers
 	//	  USART1_send4Byte(0x2A, 0x00, 0x00, 0x00); 	// LED2VAL[23:0]		=	   0	LED2 Digital Sample Value Register
 	//	  USART1_send4Byte(0x2B, 0x00, 0x00, 0x00); 	// ALED2VAL[23:0]		=	   0	Ambient LED2 Digital Sample Value
 	//	  USART1_send4Byte(0x2C, 0x00, 0x00, 0x00); 	// LED1VAL[23:0]		=	   0	LED1 Digital Sample Value
@@ -151,7 +149,7 @@ void gpioCallback(uint8_t pin)
 }
 
 void read_data() {
-	/* read registers */
+	// read registers
 
       USART1_send4Byte(0, 0, 0, 0x01);
 	  USART1_send4Byte(0x2E, 0, 0, 0);
@@ -168,147 +166,38 @@ int read_byte(int index) {
 	return receiveBuffer[index];
 
 }
+
 /**************************************************************************//**
  * @brief  Main function
  *****************************************************************************/
 int main(void)
 {
-  /* Initialize chip */
+  /* Chip errata */
   CHIP_Init();
 
- // BSP_PinsInit();
-
-   /* If first word of user data page is non-zero, enable eA Profiler trace */
-//  BSP_TraceProfilerSetup();
-
-  /* Enable General purpose input/output clock. */
-  CMU_ClockEnable(cmuClock_GPIO, true);
-
-  /* Configure PD7 as a push pull with pull up (RESETn) TP32 */
-  GPIO_PinModeSet(gpioPortD,7,gpioModePushPullDrive,1);
-
-  /* Drive low PD7 (RESETn) TP32 */
-  GPIO_PinOutClear(gpioPortD, 7);
-
-  /* Configure PB12 as a push pull with pull down (EN_RUNn) TP28 */
-  GPIO_PinModeSet(gpioPortB,12,gpioModePushPullDrive,0);
-
-  /* Drive low PB12 Regulator (EN_RUNn) TP28 */
-  GPIO_PinOutClear(gpioPortB, 12);
-
-  /* Enable Universal sync/async receiver/transmitter 1 clock */
-  CMU_ClockEnable(cmuClock_USART1 , true);
-
-  /* Setup UART */
-  SPI_setup(USART1_NUM, GPIO_POS1, true);
-
-  /* Setting up RX interrupt for master */
-//  SPI1_setupRXInt(NO_RX, NO_RX);
+  /* If first word of user data page is non-zero, enable eA Profiler trace */
+  BSP_TraceProfilerSetup();
 
   /* Setup SysTick Timer for 1 msec interrupts  */
   if (SysTick_Config(CMU_ClockFreqGet(cmuClock_CORE) / 1000)) while (1) ;
 
-  Delay(500);
-
-  /* Configure GPIO interrupt PC4 (ADC_RDY) TP8*/
-  GPIO_IntConfig(gpioPortC,4,true,false,true);
-
-  /* Initialize GPIO interrupt dispatcher */
-  GPIOINT_Init();
-
-  /* Configure input PC4 (ADC_RDY) TP8*/
-  GPIO_PinModeSet(gpioPortC, 4, gpioModeInput, 0);
-
-  /* Disable PC5 (CLKOUT) TP12*/
-  GPIO_PinModeSet(gpioPortC,5,gpioModeDisabled,0);
-
-  /* Disable PC12 (DIAG_END) TP16*/
-  GPIO_PinModeSet(gpioPortC,12,gpioModeDisabled,0);
-
-  /* Disable PC13 (PD_ALM) TP20*/
-  GPIO_PinModeSet(gpioPortC,13,gpioModeDisabled,0);
-
-  /* Disable PB11 (PGOOD) TP24*/
-  GPIO_PinModeSet(gpioPortB,11,gpioModeDisabled,0);
-
-  /* Disable PC6 (LED_ALM) TP36 */
-  GPIO_PinModeSet(gpioPortC,6,gpioModeDisabled,0);
-
-  /* Configure PD5 as a push pull with a pull up (AFE_PDNn) TP30 */
-  GPIO_PinModeSet(gpioPortD,5,gpioModePushPullDrive,0);
-
-  /* Drive high PD5 (AFE_PDNn) TP30*/
-  GPIO_PinOutSet(gpioPortD, 5);
-
-  Delay(200);
-
-  /* Drive high PD7 (RESETn) TP32 */
-  GPIO_PinOutSet(gpioPortD, 7);
-
-  /* Disable PD4 (LEFT_MCU) TP26 */
-//  GPIO_PinModeSet(gpioPortD,4,gpioModeDisabled,1);
-
-  /* Disable PD6 (MIC_MCU) TP34 */
-  GPIO_PinModeSet(gpioPortD,6,gpioModeDisabled,1);
-
-  Delay(200);
-
-  init_afe();
-  /* configure registers for on board sensor and LED */
-
-	  // Configure interrupts for TX and RX
-	    SPI1_setupSlaveInt(receiveBuffer, 256, transmitBuffer, BUFFERSIZE, bit_ready2);
-
-	  /* Register callbacks before setting up and enabling pin interrupt. */
-	  // remove line comment below to enable interrupt driven adc register requests
-	  GPIOINT_CallbackRegister(4, gpioCallback);
-
-  //1) SPI_READ set to 1
-//  USART1_send4Byte(0x00, 0x00, 0x00, 0x01);
-  /* Infinite loop */
-
- // USART1_send4Byte(0, 0, 0, 0x01);
- // USART1_send4Byte(0x01, 0, 0, 0);
-
-  // set some interrupt prioties
-	  NVIC_SetPriority(USART1_RX_IRQn, 0);
-	  NVIC_SetPriority(GPIO_ODD_IRQn, 1);
-	  NVIC_SetPriority(GPIO_EVEN_IRQn, 1);
-
-  int tmp[3] = {0};
-  int i;
-  int count = 0;
+  /* Initialize LED driver */
+  BSP_PinsInit();
+  /* Infinite blink loop */
+  spo2 = 759;
 
   while (1)
   {
-
-	 if( (entered_gpio_callback = 1)) {
-		 led2_val = 0;
-		 led1_val = 0;
-
-		 read_data();
-		 for(i = LED2_INDEX; i < (LED2_INDEX+3); i++) {
-			 tmp[i-LED2_INDEX] = read_byte(i);
-		 }
-
-		 led2_val = (tmp[0] << 16);
-		 led2_val |= (tmp[1] << 8);
-		 led2_val |= tmp[2];
-
-		 for(i = LED1_INDEX; i < (LED1_INDEX+3); i++) {
-		 		 tmp[i-LED1_INDEX] = read_byte(i);
-		 }
-		 led1_val = (tmp[0] << 16);
-		 led1_val |= (tmp[1] << 8);
-		 led1_val |= tmp[2];
-
-		 spo2 = 1000*led2_val/led1_val;
-
-		 send_byte(spo2);
-		 entered_gpio_callback = 0;
-		 Delay(100);
-		 count++;
-	 }
+//	  toggle_with_delay(5000,1);
+//	  toggle_with_delay(2000,1);
+//	  toggle_with_delay(500,3);
+//	  toggle_with_delay(1000,1);
+//	  toggle_with_delay(6000,1);
+	  send_byte(spo2);
+//	  send_bit(2);
+//	  send_bit(0);
+//	  send_bit(1);
+//	  send_bit(1);
+//	  send_bit(0);
   }
-
 }
