@@ -30,8 +30,8 @@
 #include "iocontrols.h"
 #include "em_int.h"
 
-#define LED1_INDEX  13
-#define LED2_INDEX  5
+
+
 
 volatile uint32_t msTicks; // counts 1ms timeTicks
 
@@ -48,16 +48,30 @@ char receiveBuffer[BUFFERSIZE];
 char receiveBuffer2[BUFFERSIZE];
 char bit_ready2[BUFFERSIZE];
 
+
+#define LED1_INDEX  13
+#define LED2_INDEX  5
+
 int spo2 = 1;
+int average_return = 0;
+
 
 int bitz[3] = {0};
 char* bit_readyptr;
 
 volatile int got_afe_ready = 0;
 volatile int entered_gpio_callback = 0;
+
+#define AVERAGE_WINDOW 100
 volatile int led1_val = 0;
 volatile int led2_val = 0;
-
+int led1_average_values[AVERAGE_WINDOW] = {0};
+int led2_average_values[AVERAGE_WINDOW] = {0};
+int entered_average_fill = 0;
+int led1_average = 0;
+int led2_average = 0;
+int led1;
+int led2;
 /*************************v*************************************************//**
  * @brief SysTick_Handler
  * Interrupt Service Routine for system tick counter
@@ -171,6 +185,43 @@ int read_byte(int index) {
 	return receiveBuffer[index];
 
 }
+
+int average(int array[], int array_size){
+	int i;
+	int average = 0;
+	for (i=0;i<array_size;i++){
+		average = average + array[i];
+	}
+	average = average / array_size;
+	return average;
+}
+
+int parse_led1(){
+		 int i;
+		 int tmp[3];
+		 int led1_value;
+		 for(i = LED1_INDEX; i < (LED1_INDEX+3); i++) {
+		 		 tmp[i-LED1_INDEX] = read_byte(i);
+		 }
+		 led1_value = (tmp[0] << 16);
+		 led1_value |= (tmp[1] << 8);
+		 led1_value |= tmp[2];
+		 return led1_value;
+}
+
+int parse_led2(){
+		 int i;
+		 int tmp[3];
+		 int led2_value;
+		 for(i = LED2_INDEX; i < (LED2_INDEX+3); i++) {
+		 		 tmp[i-LED2_INDEX] = read_byte(i);
+		 }
+		 led2_value = (tmp[0] << 16);
+		 led2_value |= (tmp[1] << 8);
+		 led2_value |= tmp[2];
+		 return led2_value;
+}
+
 
 /**************************************************************************//**
  * @brief  Main function
@@ -286,45 +337,50 @@ int main(void)
   int tmp[3] = {0};
   int i = 0;
   int count = 0;
+  int test_array[5] = {3,5,15,9,6};
+  average_return = average(test_array,5);
+
+
+  for (i=0;i<AVERAGE_WINDOW;i++){
+	  if( (entered_gpio_callback = 1)) {
+	  	 led2_val = 0;
+	  	 led1_val = 0;
+	  	 slaveRxBufferIndex = 0;
+
+	  	 entered_average_fill++;
+		 read_data();
+		 led1_average_values[i] = parse_led1();
+		 led2_average_values[i] = parse_led2();
+		 Delay(50);
+  		 entered_gpio_callback = 0;
+	  }
+  }
+
+  for (i=0;i<AVERAGE_WINDOW;i++){
+	  led1_average = led1_average + led1_average_values[i];
+	  led2_average = led2_average + led2_average_values[i];
+  }
+ led1_average = led1_average / AVERAGE_WINDOW;
+ led2_average = led2_average / AVERAGE_WINDOW;
+
   while (1)
   {
-
-//	  send_byte(spo2);
-
 	  	 if( (entered_gpio_callback = 1)) {
 	  		 led2_val = 0;
 	  		 led1_val = 0;
 	  		slaveRxBufferIndex = 0;
 
+
+
 	  		 read_data();
-
-	  		 for(i = LED2_INDEX; i < (LED2_INDEX+3); i++) {
-	  			 tmp[i-LED2_INDEX] = read_byte(i);
-	  		 }
-
-	  		 led2_val = (tmp[0] << 16);
-	  		 led2_val |= (tmp[1] << 8);
-	  		 led2_val |= tmp[2];
-
-	  		 for(i = LED1_INDEX; i < (LED1_INDEX+3); i++) {
-	  		 		 tmp[i-LED1_INDEX] = read_byte(i);
-	  		 }
-	  		 led1_val = (tmp[0] << 16);
-	  		 led1_val |= (tmp[1] << 8);
-	  		 led1_val |= tmp[2];
-
-	  		 spo2 = 1000*led2_val/led1_val;
-
-
+	  		 led2_val = parse_led2();
+	  		 led1_val = parse_led1();
+	  		 led1 = 10000*led1_val / led1_average;
+	  		 led2 = 10000*led2_val / led2_average;
+	  		 spo2 = 1000*led2/led1;
   			 send_byte(spo2);
 
-/*
-	  		 for(i = 0; i < 200; i++) {
-	  			 send_byte(spo2);
-	  		 }*/
-//	  		 send_byte(spo2);
 	  		 entered_gpio_callback = 0;
-//	  		 count++;
 	  	 }
 
   }
