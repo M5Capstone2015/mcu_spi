@@ -16,6 +16,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#include <string.h>
 #include "em_device.h"
 #include "em_chip.h"
 #include "em_cmu.h"
@@ -375,6 +376,9 @@ int main(void)
 	  		 read_data();
 	  		 led2_val = parse_led2();
 	  		 led1_val = parse_led1();
+	  		 memmove(led2_average_values,led2_average_values+1,AVERAGE_WINDOW-1);
+
+
 	  		 led1 = 10000*led1_val / led1_average;
 	  		 led2 = 10000*led2_val / led2_average;
 	  		 spo2 = 1000*led2/led1;
