@@ -74,13 +74,16 @@ int mappingFunction(int a){
 	return mappedOutput;
 }
 
+int entered_send_byte = 0;
 void send_byte(uint32_t byte)
 {
+	entered_send_byte++;
 	int i, temp;
 	send_bit(2);
 	mappedByte = mappingFunction(byte);
-	for(i = 0; i < 8; i++) {
+	for(i = 7; i > -1; i--) {
 		temp = mappedByte >> i;
+//		temp = byte >> i;
 		temp &= 0x1;
 		byte_array[i] = temp;
 		send_bit(temp);

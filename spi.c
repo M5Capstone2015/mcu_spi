@@ -44,7 +44,7 @@ int slaveTxBufferSize;
 volatile int slaveTxBufferIndex;
 char* slaveRxBuffer;
 int slaveRxBufferSize;
-volatile int slaveRxBufferIndex;
+
 char* masterRxBuffer;
 int masterRxBufferSize;
 volatile int masterRxBufferIndex;

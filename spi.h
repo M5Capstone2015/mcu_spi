@@ -44,7 +44,7 @@
 #include <stdbool.h>
 #include "em_device.h"
 
-
+volatile int slaveRxBufferIndex;
 
 
 void SPI_setup(uint8_t spiNumber, uint8_t location, bool master);
